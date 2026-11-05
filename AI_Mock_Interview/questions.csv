@@ -1,0 +1,32 @@
+
+id,category,subject,difficulty,question,reference_answer,key_concepts
+1,Technical,DSA,Easy,What is a stack?,A stack is a linear data structure that follows LIFO and supports push and pop operations.,LIFO;push;pop
+2,Technical,DSA,Easy,What is a queue?,A queue is a linear data structure that follows FIFO and supports enqueue and dequeue operations.,FIFO;enqueue;dequeue
+3,Technical,DSA,Easy,What is an array?,An array stores elements in indexed positions and typically uses contiguous memory.,elements;index;memory
+4,Technical,DSA,Easy,What is a linked list?,A linked list consists of nodes that store data and links to other nodes.,nodes;data;links
+5,Technical,DSA,Medium,What is the difference between linear search and binary search?,Linear search checks elements one by one while binary search repeatedly halves a sorted search space.,linear;binary;sorted;complexity
+6,Technical,DSA,Medium,What is the time complexity of binary search?,Binary search has O(log n) time complexity on sorted data because it halves the search space each step.,O(log n);sorted;halving
+7,Technical,DBMS,Easy,What is a primary key?,A primary key uniquely identifies each record in a table and cannot contain NULL values.,unique;record;not NULL
+8,Technical,DBMS,Easy,What is a foreign key?,A foreign key references a key in another or the same table to maintain referential integrity.,reference;relationship;integrity
+9,Technical,DBMS,Easy,What is normalization?,Normalization organizes database tables to reduce redundancy and prevent update anomalies.,redundancy;tables;anomalies
+10,Technical,DBMS,Medium,What is the difference between DELETE and TRUNCATE?,DELETE removes selected rows or all rows and supports a WHERE clause while TRUNCATE removes all rows from a table.,DELETE;TRUNCATE;WHERE
+11,Technical,DBMS,Medium,What are ACID properties?,ACID stands for Atomicity Consistency Isolation and Durability and describes reliable database transactions.,Atomicity;Consistency;Isolation;Durability
+12,Technical,OS,Easy,What is an operating system?,An operating system manages hardware resources and provides services to programs.,hardware;resources;programs
+13,Technical,OS,Easy,What is a process?,A process is a program in execution with its own execution state and allocated resources.,program;execution;resources
+14,Technical,OS,Easy,What is a thread?,A thread is a unit of execution within a process that can share process resources with other threads.,execution;process;resources
+15,Technical,OS,Medium,What is deadlock?,Deadlock occurs when processes wait indefinitely for resources held by one another.,processes;resources;waiting
+16,Technical,OS,Medium,What is the difference between a process and a thread?,Processes generally have separate address spaces while threads within a process share memory and resources.,address space;shared memory;execution
+17,Technical,Computer Networks,Easy,What is an IP address?,An IP address identifies a device interface on an IP network for communication.,IP;address;network
+18,Technical,Computer Networks,Easy,What is the difference between TCP and UDP?,TCP provides reliable ordered delivery while UDP sends datagrams without guaranteeing delivery or order.,TCP;UDP;reliability;order
+19,Technical,Computer Networks,Easy,What is DNS?,DNS translates domain names into information such as IP addresses used to locate network services.,domain name;IP address;resolution
+20,Technical,Computer Networks,Medium,What is the difference between HTTP and HTTPS?,HTTPS uses TLS to protect HTTP communication through encryption and server authentication.,HTTP;HTTPS;TLS;encryption
+21,Technical,OOP,Easy,What is inheritance?,Inheritance allows a class to acquire or extend properties and methods from another class.,class;properties;methods
+22,Technical,OOP,Easy,What is encapsulation?,Encapsulation combines data and methods and controls access to an object's internal state.,data;methods;access
+23,Technical,OOP,Easy,What is polymorphism?,Polymorphism allows a common interface or operation to behave differently for different types or objects.,interface;multiple forms;objects
+24,Technical,OOP,Medium,What is the difference between method overloading and overriding?,Overloading uses the same method name with different parameter lists while overriding redefines an inherited method.,overloading;parameters;overriding
+25,Technical,OOP,Medium,What is abstraction?,Abstraction exposes essential features while hiding unnecessary implementation details.,essential features;implementation;hiding
+26,HR,General,Easy,Tell me about yourself.,A good response briefly introduces the candidate and covers education skills interests and career goals.,introduction;education;skills;goals
+27,HR,General,Easy,What are your strengths?,A good response identifies relevant strengths and supports them with a genuine example.,strengths;example;relevance
+28,HR,General,Easy,What is your greatest weakness?,A good response identifies a genuine manageable weakness and explains steps being taken to improve.,weakness;improvement;action
+29,HR,General,Medium,Why should we hire you?,A good response connects relevant skills learning ability and achievements to the role's requirements.,skills;learning;role
+30,HR,General,Easy,What are your hobbies and interests?,A good response describes genuine hobbies and explains any skills or lessons gained from them.,hobbies;interests;skills
