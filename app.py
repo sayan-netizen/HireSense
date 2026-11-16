@@ -6,6 +6,7 @@ Complete UI/UX Redesign — Nothing OS / Teenage Engineering Technical Minimalis
 import os
 import json
 import time
+import textwrap
 from typing import Optional, Dict, Any, List
 import cv2
 import streamlit as st
@@ -32,6 +33,7 @@ from core.question_manager import QuestionManager
 from core.interview_controller import InterviewController
 from core.telemetry_server import start_telemetry_server
 from core.ui_components import (
+    clean_html,
     render_page_header,
     render_section_title,
     render_status_pill,
@@ -323,7 +325,7 @@ if st.session_state.current_screen in ("welcome", "landing"):
     c_hero1, c_hero2 = st.columns([3, 2])
     with c_hero1:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card" style="padding: 1.5rem 1.6rem;">
                 <div class="nothing-label">// INTRODUCTORY BRIEF</div>
                 <div style="font-size: 1.05rem; font-weight: 500; color: var(--beige-light); line-height: 1.6; margin-bottom: 1rem;">
@@ -337,13 +339,13 @@ if st.session_state.current_screen in ("welcome", "landing"):
                     <span class="nothing-badge">NON-DIAGNOSTIC COACHING</span>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
     with c_hero2:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card" style="padding: 1.5rem 1.6rem; height: calc(100% - 1rem); display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
                     <div class="nothing-label">// QUICK ACTION</div>
@@ -352,7 +354,7 @@ if st.session_state.current_screen in ("welcome", "landing"):
                     </div>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
         if st.button("START NEW INTERVIEW", type="primary", use_container_width=True):
@@ -364,7 +366,7 @@ if st.session_state.current_screen in ("welcome", "landing"):
 
     with col_p1:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card">
                 <div class="nothing-card-header">
                     <span>[ PILLAR 01 ]</span>
@@ -377,13 +379,13 @@ if st.session_state.current_screen in ("welcome", "landing"):
                     Deep semantic evaluation of candidate responses: technical correctness, reasoning depth, completeness, and conceptual clarity evaluated using Qwen through local Ollama.
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
     with col_p2:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card">
                 <div class="nothing-card-header">
                     <span>[ PILLAR 02 ]</span>
@@ -396,13 +398,13 @@ if st.session_state.current_screen in ("welcome", "landing"):
                     Real-time speech recognition, deterministic filler-word frequency analysis (e.g. 'um', 'uh', 'you know'), speaking pace, and optional phonetic assessment.
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
     with col_p3:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card">
                 <div class="nothing-card-header">
                     <span>[ PILLAR 03 ]</span>
@@ -415,7 +417,7 @@ if st.session_state.current_screen in ("welcome", "landing"):
                     Unmirrored optical tracking measuring posture alignment, solvePnP 3D head position, iris gaze direction, and gesture composure as non-diagnostic practice indicators.
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
@@ -519,7 +521,10 @@ elif st.session_state.current_screen in ("setup", "config"):
         # ── SECTION D: ADVANCED SETTINGS (EXPANDABLE) ──
         with st.expander("[+] Advanced Engine Configuration"):
             st.markdown("<div class='nothing-label'>// OLLAMA LLM & EVALUATOR</div>", unsafe_allow_html=True)
-            ollama_models = st.session_state.ollama_client.get_available_models()
+            try:
+                _, _, ollama_models = st.session_state.ollama_client.check_connection()
+            except Exception:
+                ollama_models = []
             model_options = ollama_models if ollama_models else [DEFAULT_OLLAMA_MODEL]
             selected_model = st.selectbox(
                 "Ollama Model",
@@ -540,7 +545,7 @@ elif st.session_state.current_screen in ("setup", "config"):
         # ── SECTION E: CONFIGURATION SUMMARY & SUBMIT ──
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            f"""
+            clean_html(f"""
             <div class="nothing-card" style="padding: 0.9rem 1.1rem; border-color: var(--border-beige);">
                 <div class="nothing-label">// CONFIGURATION SUMMARY</div>
                 <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--beige-primary); line-height: 1.6;">
@@ -548,7 +553,7 @@ elif st.session_state.current_screen in ("setup", "config"):
                     QUESTIONS: <b>{num_questions}</b> · RESPONSE MODE: <b>{answer_mode.upper()}</b> · VISION: <b>{'ENABLED' if enable_webcam else 'DISABLED'}</b>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
@@ -620,7 +625,7 @@ elif st.session_state.current_screen == "calibration":
 
     with col_info:
         st.markdown(
-            """
+            clean_html("""
             <div class="nothing-card">
                 <div class="nothing-card-header">[ POSITIONING PROTOCOL ]</div>
                 <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--beige-muted); line-height: 1.8;">
@@ -630,7 +635,7 @@ elif st.session_state.current_screen == "calibration":
                     04. Green wireframe lines verify active landmark tracking.
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
@@ -912,14 +917,14 @@ elif st.session_state.current_screen == "interview":
 
             # Detailed Feedback Narrative
             st.markdown(
-                f"""
+                clean_html(f"""
                 <div class="nothing-card">
                     <div class="nothing-label">// EVALUATION SYNTHESIS</div>
                     <div style="font-size: 0.90rem; color: var(--beige-light); line-height: 1.55; margin-bottom: 0.75rem;">
                         {ev.get('overall_feedback') or ev.get('explanation')}
                     </div>
                 </div>
-                """,
+                """),
                 unsafe_allow_html=True,
             )
 
@@ -1250,7 +1255,7 @@ elif st.session_state.current_screen in ("results", "report"):
 
     # 1. Performance Overview Top Card
     st.markdown(
-        f"""
+        clean_html(f"""
         <div class="nothing-card" style="padding: 1.25rem 1.4rem; border-color: var(--border-beige);">
             <div class="nothing-card-header">
                 <span>[ EXECUTIVE SUMMARY ]</span>
@@ -1268,7 +1273,7 @@ elif st.session_state.current_screen in ("results", "report"):
                 {ans_intel.get('overall_assessment_narrative', 'Interview completed successfully.')}
             </div>
         </div>
-        """,
+        """),
         unsafe_allow_html=True,
     )
 
@@ -1281,7 +1286,7 @@ elif st.session_state.current_screen in ("results", "report"):
         avg_score = ans_intel.get("overall_content_score", ans_intel.get("average_content_score", 0.0))
         tier = "Distinguished" if avg_score >= 8.5 else ("Proficient" if avg_score >= 7.0 else ("Competent" if avg_score >= 5.0 else "Developing"))
         st.markdown(
-            f"""
+            clean_html(f"""
             <div class="nothing-card" style="height: 100%;">
                 <div class="nothing-card-header">
                     <span>[ DIMENSION 01 ]</span>
@@ -1298,7 +1303,7 @@ elif st.session_state.current_screen in ("results", "report"):
                     COMPLETENESS: <b>{ans_intel.get('average_completeness', 0):.1f}/10</b>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
@@ -1308,7 +1313,7 @@ elif st.session_state.current_screen in ("results", "report"):
         filler_rate = speech_intel.get("filler_rate_per_100", speech_intel.get("filler_words_per_100_words", 0.0))
         tot_words = speech_intel.get("total_words", speech_intel.get("total_words_spoken", 0))
         st.markdown(
-            f"""
+            clean_html(f"""
             <div class="nothing-card" style="height: 100%;">
                 <div class="nothing-card-header">
                     <span>[ DIMENSION 02 ]</span>
@@ -1325,7 +1330,7 @@ elif st.session_state.current_screen in ("results", "report"):
                     PHONETIC ACCURACY: <b>{speech_intel.get('average_pronunciation_score') or 'N/A'}</b>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
@@ -1336,7 +1341,7 @@ elif st.session_state.current_screen in ("results", "report"):
         head_score = vis_intel.get("head_position_score", 0.0)
         rel_score = vis_intel.get("reliability_score", vis_intel.get("tracking_reliability_percentage", 100.0))
         st.markdown(
-            f"""
+            clean_html(f"""
             <div class="nothing-card" style="height: 100%;">
                 <div class="nothing-card-header">
                     <span>[ DIMENSION 03 ]</span>
@@ -1353,7 +1358,7 @@ elif st.session_state.current_screen in ("results", "report"):
                     RELIABILITY: <b>{rel_score:.0f}%</b>
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 

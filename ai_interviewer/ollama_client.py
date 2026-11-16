@@ -55,6 +55,11 @@ class OllamaClient:
         except Exception as e:
             return False, f"Ollama connection error: {str(e)}", []
 
+    def get_available_models(self) -> List[str]:
+        """Fetch list of available models from Ollama."""
+        _, _, models = self.check_connection()
+        return models
+
     def chat(
         self,
         messages: List[Dict[str, str]],

@@ -9,6 +9,15 @@ from typing import Dict, Any, List, Optional
 import streamlit as st
 
 
+def clean_html(raw_html: str) -> str:
+    """
+    Strips all leading whitespace from each line of an HTML string.
+    This prevents Streamlit / CommonMark markdown parsers from misinterpreting
+    indented lines (>= 4 spaces) as code blocks with copy buttons.
+    """
+    return "\n".join(line.lstrip() for line in raw_html.strip().splitlines())
+
+
 # =============================================================================
 # TYPOGRAPHY & HEADERS
 # =============================================================================
@@ -29,33 +38,29 @@ def render_page_header(
         }.get(badge_variant, "")
         badge_html = f'<span class="nothing-badge {variant_class}">[{badge_text}]</span>'
 
-    st.markdown(
-        f"""
-        <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
-                <span class="nothing-label" style="margin-bottom: 0;">// HIRESENSE INTERVIEW OS</span>
-                {badge_html}
-            </div>
-            <div class="nothing-title">{title}</div>
-            <div class="nothing-subtitle">{tagline}</div>
+    html = f"""
+    <div style="margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
+            <span class="nothing-label" style="margin-bottom: 0;">// HIRESENSE INTERVIEW OS</span>
+            {badge_html}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        <div class="nothing-title">{title}</div>
+        <div class="nothing-subtitle">{tagline}</div>
+    </div>
+    """
+    st.markdown(clean_html(html), unsafe_allow_html=True)
 
 
 def render_section_title(label: str, hint: Optional[str] = None) -> None:
     """Render a technical section divider with optional hint text."""
     hint_html = f'<span style="color: var(--beige-dim); font-size: 0.70rem; letter-spacing: 0.05em;">{hint}</span>' if hint else ""
-    st.markdown(
-        f"""
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 1.25rem; margin-bottom: 0.6rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.35rem;">
-            <span class="nothing-label" style="margin-bottom: 0;">// {label}</span>
-            {hint_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    html = f"""
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 1.25rem; margin-bottom: 0.6rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.35rem;">
+        <span class="nothing-label" style="margin-bottom: 0;">// {label}</span>
+        {hint_html}
+    </div>
+    """
+    st.markdown(clean_html(html), unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -100,7 +105,7 @@ def render_score_card(
 
     status_html = f'<div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--beige-muted); text-transform: uppercase; margin-top: 0.25rem;">[ {status_label} ]</div>' if status_label else ""
 
-    return f"""
+    html = f"""
     <div class="nothing-card" style="padding: 1rem 1.15rem; margin-bottom: 0.75rem;">
         <div class="nothing-label">{label}</div>
         <div style="display: flex; align-items: baseline; gap: 0.25rem;">
@@ -110,6 +115,7 @@ def render_score_card(
         {status_html}
     </div>
     """
+    return clean_html(html)
 
 
 # =============================================================================
@@ -122,12 +128,12 @@ def render_selection_card_html(
     selected: bool = False,
     badge: Optional[str] = None,
 ) -> str:
-    """Generate HTML for an interactive selection option card."""
+    """Generate HTML for an interactive selection option card with zero indent to avoid CommonMark code block parsing."""
     border_style = "border-color: var(--border-beige); background: #18181c;" if selected else ""
     active_marker = '<span style="color: var(--tech-green); font-family: var(--font-mono); font-size: 0.70rem;">[*] ACTIVE</span>' if selected else ""
     badge_html = f'<span class="nothing-badge">{badge}</span>' if badge else ""
 
-    return f"""
+    html = f"""
     <div class="nothing-card nothing-selection-card" style="{border_style} padding: 1.1rem 1.25rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
             <span style="font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem; color: var(--beige-light); letter-spacing: 0.05em;">{title}</span>
@@ -141,6 +147,7 @@ def render_selection_card_html(
         </div>
     </div>
     """
+    return clean_html(html)
 
 
 # =============================================================================
@@ -158,36 +165,32 @@ def render_interview_topbar(
     """Render distraction-free top navigation bar for live interview."""
     progress_pct = int(((current_index + 1) / max(1, total_questions)) * 100)
     
-    st.markdown(
-        f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle);">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span class="nothing-badge" style="font-weight: 700;">QUESTION {current_index + 1:02d} / {total_questions:02d}</span>
-                <span class="nothing-badge nothing-badge-green"><span class="nothing-live-dot"></span>LIVE SESSION</span>
-                <span class="nothing-badge">{category.upper()} // {subject.upper()}</span>
-                <span class="nothing-badge nothing-badge-amber">{difficulty.upper()}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 1rem; font-family: var(--font-mono); font-size: 0.78rem;">
-                <span style="color: var(--beige-muted);">TIME: <b style="color: var(--beige-light);">{time_elapsed_formatted}</b></span>
-                <span style="color: var(--beige-muted);">PROGRESS: <b style="color: var(--beige-light);">{progress_pct}%</b></span>
-            </div>
+    html = f"""
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="nothing-badge" style="font-weight: 700;">QUESTION {current_index + 1:02d} / {total_questions:02d}</span>
+            <span class="nothing-badge nothing-badge-green"><span class="nothing-live-dot"></span>LIVE SESSION</span>
+            <span class="nothing-badge">{category.upper()} // {subject.upper()}</span>
+            <span class="nothing-badge nothing-badge-amber">{difficulty.upper()}</span>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        <div style="display: flex; align-items: center; gap: 1rem; font-family: var(--font-mono); font-size: 0.78rem;">
+            <span style="color: var(--beige-muted);">TIME: <b style="color: var(--beige-light);">{time_elapsed_formatted}</b></span>
+            <span style="color: var(--beige-muted);">PROGRESS: <b style="color: var(--beige-light);">{progress_pct}%</b></span>
+        </div>
+    </div>
+    """
+    st.markdown(clean_html(html), unsafe_allow_html=True)
 
 
 def render_question_box(question_text: str, question_index: int) -> None:
     """Render high-clarity focal question box."""
-    st.markdown(
-        f"""
-        <div class="nothing-question-box">
-            <div class="nothing-label">// INTERVIEWER PROMPT :: QUESTION {question_index + 1:02d}</div>
-            <div class="nothing-question-text">{question_text}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    html = f"""
+    <div class="nothing-question-box">
+        <div class="nothing-label">// INTERVIEWER PROMPT :: QUESTION {question_index + 1:02d}</div>
+        <div class="nothing-question-text">{question_text}</div>
+    </div>
+    """
+    st.markdown(clean_html(html), unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -219,14 +222,12 @@ def render_system_readiness_strip(
         render_status_pill("FFMPEG MISSING // WAV ONLY", "amber")
     )
 
-    st.markdown(
-        f"""
-        <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.25rem; padding: 0.65rem 0.85rem; background: #0c0c0e; border: 1px solid var(--border-subtle); border-radius: 4px;">
-            <span class="nothing-label" style="align-self: center; margin-bottom: 0;">SYSTEM STATUS:</span>
-            {ollama_pill}
-            {vision_pill}
-            {audio_pill}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    html = f"""
+    <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.25rem; padding: 0.65rem 0.85rem; background: #0c0c0e; border: 1px solid var(--border-subtle); border-radius: 4px;">
+        <span class="nothing-label" style="align-self: center; margin-bottom: 0;">SYSTEM STATUS:</span>
+        {ollama_pill}
+        {vision_pill}
+        {audio_pill}
+    </div>
+    """
+    st.markdown(clean_html(html), unsafe_allow_html=True)
