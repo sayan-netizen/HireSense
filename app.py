@@ -208,6 +208,29 @@ AppEngineBridge.mirror = bool(st.session_state.get("camera_mirror", False))
 AppEngineBridge.mode = "calibration" if st.session_state.get("current_screen") == "calibration" else "interview"
 
 
+def get_rtc_configuration():
+    """
+    Returns optimal RTCConfiguration based on environment.
+    Defaults to Local Direct (iceServers=[]) for localhost instant sub-second connection,
+    or Multi-STUN (Google, Cloudflare, Metered) if remote traversal is selected.
+    """
+    if not WEBRTC_AVAILABLE:
+        return None
+    mode = st.session_state.get("webrtc_ice_mode", "Local Direct (Instant)")
+    if "Local" in mode:
+        return RTCConfiguration({"iceServers": []})
+    return RTCConfiguration(
+        {
+            "iceServers": [
+                {"urls": ["stun:stun.l.google.com:19302"]},
+                {"urls": ["stun:stun1.l.google.com:19302"]},
+                {"urls": ["stun:stun.cloudflare.com:3478"]},
+                {"urls": ["stun:relay.metered.ca:80"]},
+            ]
+        }
+    )
+
+
 # =============================================================================
 # NAVIGATION HELPER
 # =============================================================================
@@ -258,8 +281,8 @@ with st.sidebar:
 
     st.divider()
 
-    # ── CAMERA ORIENTATION CONTROL ──
-    st.markdown("<div class='nothing-label'>[ CAMERA ORIENTATION ]</div>", unsafe_allow_html=True)
+    # ── CAMERA SETTINGS ──
+    st.markdown("<div class='nothing-label'>[ CAMERA SETTINGS ]</div>", unsafe_allow_html=True)
     m_val = st.toggle(
         "Mirror Camera View",
         value=bool(st.session_state.get("camera_mirror", False)),
@@ -271,6 +294,19 @@ with st.sidebar:
         AppEngineBridge.mirror = m_val
         st.rerun()
     AppEngineBridge.mirror = bool(st.session_state.get("camera_mirror", False))
+
+    ice_opts = ["Local Direct (Instant / No STUN)", "Multi-STUN (Google / Cloudflare)"]
+    ice_idx = 0 if "Local" in st.session_state.get("webrtc_ice_mode", "Local Direct") else 1
+    selected_ice = st.selectbox(
+        "WebRTC Network",
+        ice_opts,
+        index=ice_idx,
+        key="webrtc_ice_mode_selector",
+        help="Local Direct connects immediately via host candidates for localhost. Multi-STUN traverses NAT/firewalls for remote cloud access.",
+    )
+    if selected_ice != st.session_state.get("webrtc_ice_mode", "Local Direct (Instant / No STUN)"):
+        st.session_state.webrtc_ice_mode = selected_ice
+        st.rerun()
 
     st.divider()
 
@@ -620,7 +656,7 @@ elif st.session_state.current_screen == "calibration":
                 st.rerun()
 
         if WEBRTC_AVAILABLE:
-            rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            rtc_config = get_rtc_configuration()
             webrtc_streamer(
                 key="calibration_stream",
                 mode=WebRtcMode.SENDRECV,
@@ -629,6 +665,7 @@ elif st.session_state.current_screen == "calibration":
                 media_stream_constraints={"video": {"width": {"ideal": 540, "max": 640}, "height": {"ideal": 405, "max": 480}, "frameRate": {"ideal": 20, "max": 24}}, "audio": False},
                 async_processing=True,
             )
+            st.caption("// Network Info: Using 'Local Direct' ICE (instant localhost connection). Click 'SKIP CALIBRATION' anytime to bypass.")
         else:
             st.warning("// WebRTC browser video unavailable. Proceeding in headless mode.")
 
@@ -1035,7 +1072,7 @@ elif st.session_state.current_screen == "interview":
 
             # WebRTC Camera Stream
             if WEBRTC_AVAILABLE:
-                rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+                rtc_config = get_rtc_configuration()
                 webrtc_streamer(
                     key="live_interview_camera",
                     mode=WebRtcMode.SENDRECV,
