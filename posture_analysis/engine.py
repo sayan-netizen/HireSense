@@ -347,6 +347,7 @@ class PostureEngine:
                     "fps": round(self.current_fps, 1),
                     "session_time": round(session_time, 1),
                     "is_calibrated": self.is_calibrated,
+                    "calibration_progress": 100.0 if self.is_calibrated else self._latest_metrics.get("calibration_progress", 0.0),
                     "reliability": scores.get("reliability", 100.0),
                     "warnings": warnings,
                 }

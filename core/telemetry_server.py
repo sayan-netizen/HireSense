@@ -46,12 +46,16 @@ class TelemetryHTTPHandler(http.server.BaseHTTPRequestHandler):
                 hand = data.get("hand", {})
 
                 # Clean payload formatted for the frontend cards
+                gesture_val = scores.get("gesture_score")
+                if gesture_val is None:
+                    gesture_val = scores.get("gestures", 85)
+
                 payload = {
                     "posture": round(float(scores.get("posture", 75))),
                     "eye_contact": round(float(scores.get("eye_contact", 85))),
                     "gaze_direction": str(face.get("gaze_direction", "CENTERED")).upper(),
                     "head_position": round(float(scores.get("head_position", 90))),
-                    "gesture_score": round(float(scores.get("gesture_score", 85))),
+                    "gesture_score": round(float(gesture_val)),
                     "reliability": round(float(scores.get("reliability", 100))),
                     "lean_direction": str(posture.get("lean_direction", "Balanced")),
                     "is_calibrated": bool(data.get("is_calibrated", False)),
@@ -111,7 +115,10 @@ def start_telemetry_server(
             return True
 
         try:
-            server = FastHTTPServer(("127.0.0.1", port), TelemetryHTTPHandler)
+            try:
+                server = FastHTTPServer(("0.0.0.0", port), TelemetryHTTPHandler)
+            except OSError:
+                server = FastHTTPServer(("127.0.0.1", port), TelemetryHTTPHandler)
             thread = threading.Thread(
                 target=server.serve_forever,
                 name="HireSenseTelemetryServer",

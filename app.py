@@ -737,7 +737,7 @@ elif st.session_state.current_screen == "calibration":
         </body>
         </html>
         """
-        components.html(cal_html, height=85)
+        components.html(cal_html, height=100)
 
         # Oral Mode Microphone Test (if selected)
         settings = st.session_state.controller.session_manager.session_data.get("settings", {})
@@ -872,6 +872,7 @@ elif st.session_state.current_screen == "interview":
             else:
                 with st.spinner("// Ollama LLM analyzing response concepts..."):
                     # Speech filler analysis
+                    speech_result_data = None
                     if settings.get("answer_mode") == "Oral" and user_answer_text.strip():
                         filler_res = analyze_fillers(user_answer_text)
                         speech_result_data = {
@@ -985,13 +986,14 @@ elif st.session_state.current_screen == "interview":
                         visual_summary=v_summary,
                     )
                     st.session_state.final_report = report
+                    avg_score = report["answer_intelligence"].get("overall_content_score", report["answer_intelligence"].get("average_content_score", 0.0))
                     # Archive into session history
                     st.session_state.session_history.append({
                         "session_id": report["overview"]["session_id"],
                         "candidate_name": report["overview"]["candidate_name"],
                         "category": report["overview"]["category"],
                         "subject": report["overview"]["subject"],
-                        "average_score": report["answer_intelligence"]["average_content_score"],
+                        "average_score": avg_score,
                         "date": report["overview"]["timestamp"],
                         "report": report,
                     })
@@ -1237,7 +1239,7 @@ elif st.session_state.current_screen in ("results", "report"):
     ans_intel = report["answer_intelligence"]
     speech_intel = report["speech_intelligence"]
     vis_intel = report["visual_intelligence"]
-    recs = report.get("coaching_recommendations", [])
+    recs = report.get("recommendations", report.get("coaching_recommendations", []))
 
     render_page_header(
         title="INTERVIEW PERFORMANCE DOSSIER",
@@ -1276,8 +1278,8 @@ elif st.session_state.current_screen in ("results", "report"):
 
     # Dimension 1: Answer Intelligence
     with col_d1:
-        avg_score = ans_intel.get("average_content_score", 0.0)
-        tier = ans_intel.get("performance_tier", "Competent")
+        avg_score = ans_intel.get("overall_content_score", ans_intel.get("average_content_score", 0.0))
+        tier = "Distinguished" if avg_score >= 8.5 else ("Proficient" if avg_score >= 7.0 else ("Competent" if avg_score >= 5.0 else "Developing"))
         st.markdown(
             f"""
             <div class="nothing-card" style="height: 100%;">
@@ -1302,8 +1304,9 @@ elif st.session_state.current_screen in ("results", "report"):
 
     # Dimension 2: Speech Intelligence
     with col_d2:
-        tot_fillers = speech_intel.get("total_fillers_detected", 0)
-        filler_rate = speech_intel.get("filler_words_per_100_words", 0.0)
+        tot_fillers = speech_intel.get("total_fillers", speech_intel.get("total_fillers_detected", 0))
+        filler_rate = speech_intel.get("filler_rate_per_100", speech_intel.get("filler_words_per_100_words", 0.0))
+        tot_words = speech_intel.get("total_words", speech_intel.get("total_words_spoken", 0))
         st.markdown(
             f"""
             <div class="nothing-card" style="height: 100%;">
@@ -1314,7 +1317,7 @@ elif st.session_state.current_screen in ("results", "report"):
                 <div style="margin-bottom: 0.75rem;">
                     <span class="nothing-metric-val">{filler_rate:.1f}</span>
                     <span class="nothing-metric-unit">fillers/100w</span>
-                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ TOTAL WORDS: {speech_intel.get('total_words_spoken', 0)} ]</div>
+                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ TOTAL WORDS: {tot_words} ]</div>
                 </div>
                 <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
                     TOTAL FILLERS: <b>{tot_fillers}</b><br>
@@ -1328,8 +1331,10 @@ elif st.session_state.current_screen in ("results", "report"):
 
     # Dimension 3: Visual Behaviour Intelligence
     with col_d3:
-        posture_avg = vis_intel.get("posture_alignment_score", 0.0)
-        eye_avg = vis_intel.get("eye_contact_percentage", 0.0)
+        posture_avg = vis_intel.get("posture_score", vis_intel.get("posture_alignment_score", 0.0))
+        eye_avg = vis_intel.get("eye_contact_score", vis_intel.get("eye_contact_percentage", 0.0))
+        head_score = vis_intel.get("head_position_score", 0.0)
+        rel_score = vis_intel.get("reliability_score", vis_intel.get("tracking_reliability_percentage", 100.0))
         st.markdown(
             f"""
             <div class="nothing-card" style="height: 100%;">
@@ -1344,8 +1349,8 @@ elif st.session_state.current_screen in ("results", "report"):
                 </div>
                 <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
                     EYE CONTACT: <b>{eye_avg:.0f}%</b><br>
-                    HEAD POSITION: <b>{vis_intel.get('head_position_score', 0):.0f}/100</b><br>
-                    RELIABILITY: <b>{vis_intel.get('tracking_reliability_percentage', 100):.0f}%</b>
+                    HEAD POSITION: <b>{head_score:.0f}/100</b><br>
+                    RELIABILITY: <b>{rel_score:.0f}%</b>
                 </div>
             </div>
             """,
@@ -1359,8 +1364,11 @@ elif st.session_state.current_screen in ("results", "report"):
     with c_ins1:
         st.markdown("<div class='nothing-label'>[ OBSERVED CANDIDATE STRENGTHS ]</div>", unsafe_allow_html=True)
         strengths = ans_intel.get("primary_strengths", [])
+        if not strengths:
+            for q in ans_intel.get("questions_evaluated", []):
+                strengths.extend(q.get("strengths", []))
         if strengths:
-            for s in strengths:
+            for s in list(dict.fromkeys(strengths))[:5]:
                 st.markdown(f"- [+] {s}")
         else:
             st.markdown("- [+] Consistent structured responses provided.")
@@ -1368,8 +1376,11 @@ elif st.session_state.current_screen in ("results", "report"):
     with c_ins2:
         st.markdown("<div class='nothing-label'>[ AREAS FOR IMPROVEMENT ]</div>", unsafe_allow_html=True)
         weaknesses = ans_intel.get("primary_weaknesses", [])
+        if not weaknesses:
+            for q in ans_intel.get("questions_evaluated", []):
+                weaknesses.extend(q.get("areas_to_improve", []))
         if weaknesses:
-            for w in weaknesses:
+            for w in list(dict.fromkeys(weaknesses))[:5]:
                 st.markdown(f"- [!] {w}")
         else:
             st.markdown("- [!] Deepen technical architecture and edge-case coverage.")
