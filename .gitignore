@@ -1,7 +1,56 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-.venv/
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables
 .env
-.streamlit/secrets.toml
+
+# Temporary audio and video recordings
+*.webm
+*.wav
+*.mp4
+*.avi
+temp_*
+
+# Generated test reports
+tests/test_output.pdf
+reporting/hiresense_report_*.pdf
+reporting/hiresense_report_*.json
+
+# Predecessor unintegrated raw project archives
+AI_Mock_Interview/
+interview-posture-analyzer/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini

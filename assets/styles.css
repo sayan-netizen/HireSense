@@ -1,0 +1,260 @@
+/* =============================================================================
+   HIRESENSE :: NOTHING UI THEME (PITCH BLACK & WARM BEIGE WITH NEON WIREFRAMES)
+   Technical Minimalist Aesthetic inspired by Nothing OS & Teenage Engineering
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-void: #08080a;
+    --bg-card: #121214;
+    --bg-card-hover: #18181b;
+    --border-subtle: #262420;
+    --border-active: #474239;
+    --border-beige: #c2b59d;
+
+    /* Warm Beige Palette */
+    --beige-light: #f5f0e6;
+    --beige-primary: #e8dec8;
+    --beige-muted: #a69b88;
+    --beige-dim: #5c5548;
+
+    /* Technical Indicator Accents */
+    --tech-green: #00ff88;
+    --tech-green-dim: rgba(0, 255, 136, 0.15);
+    --tech-red: #d93829;
+    --tech-amber: #e5a93c;
+    
+    --font-mono: 'Space Mono', 'Consolas', 'Courier New', monospace;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ─── Global Background & Base Text ─── */
+.stApp {
+    background-color: var(--bg-void) !important;
+    color: var(--beige-light) !important;
+    font-family: var(--font-sans) !important;
+    letter-spacing: -0.01em;
+}
+
+/* ─── Nothing UI Typography & Technical Labels ─── */
+.nothing-label {
+    font-family: var(--font-mono) !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.14em !important;
+    color: var(--beige-muted) !important;
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.nothing-title {
+    font-family: var(--font-sans);
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--beige-light);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.nothing-subtitle {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--beige-muted);
+    margin-bottom: 1.2rem;
+}
+
+/* ─── Nothing UI Cards (Crisp, Technical, Minimalist) ─── */
+.nothing-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: border-color 0.2s ease;
+}
+
+.nothing-card:hover {
+    border-color: var(--border-active);
+}
+
+.nothing-card-header {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--beige-primary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 0.5rem;
+}
+
+/* ─── Metric Readouts (Monospace Bold Numbers) ─── */
+.nothing-metric-val {
+    font-family: var(--font-mono);
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--beige-light);
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+}
+
+.nothing-metric-unit {
+    font-size: 0.95rem;
+    color: var(--beige-muted);
+    font-weight: 400;
+}
+
+/* ─── Technical Badges (Square/Pill, Letterspaced) ─── */
+.nothing-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    border-radius: 2px;
+    background: #1c1c1f;
+    color: var(--beige-primary);
+    border: 1px solid var(--border-active);
+}
+
+.nothing-badge-green {
+    background: rgba(0, 255, 136, 0.08);
+    color: var(--tech-green);
+    border: 1px solid rgba(0, 255, 136, 0.35);
+}
+
+.nothing-badge-red {
+    background: rgba(217, 56, 41, 0.10);
+    color: #ff6b5e;
+    border: 1px solid rgba(217, 56, 41, 0.40);
+}
+
+.nothing-badge-amber {
+    background: rgba(229, 169, 60, 0.10);
+    color: var(--tech-amber);
+    border: 1px solid rgba(229, 169, 60, 0.35);
+}
+
+/* ─── Question Banner ─── */
+.nothing-question-box {
+    background-color: #111114;
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--beige-primary);
+    border-radius: 4px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.nothing-question-text {
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+}
+
+/* ─── Live Indicator Pulse ─── */
+.nothing-live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--tech-green);
+    box-shadow: 0 0 8px var(--tech-green);
+    margin-right: 0.4rem;
+    animation: livePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ─── Streamlit Button Styling (Technical Minimalist) ─── */
+button[kind="primary"] {
+    background-color: var(--beige-primary) !important;
+    color: #08080a !important;
+    font-family: var(--font-mono) !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.10em !important;
+    border: none !important;
+    border-radius: 3px !important;
+    padding: 0.55rem 1.2rem !important;
+    transition: all 0.15s ease !important;
+}
+
+button[kind="primary"]:hover {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: 0 0 14px rgba(232, 222, 200, 0.4) !important;
+}
+
+button[kind="secondary"] {
+    background-color: transparent !important;
+    color: var(--beige-primary) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.10em !important;
+    border: 1px solid var(--border-active) !important;
+    border-radius: 3px !important;
+}
+
+button[kind="secondary"]:hover {
+    background-color: #1c1c20 !important;
+    border-color: var(--beige-primary) !important;
+    color: #ffffff !important;
+}
+
+/* ─── Inputs & Textareas ─── */
+.stTextArea textarea, .stTextInput input, .stSelectbox select {
+    background-color: #0e0e11 !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--beige-light) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.90rem !important;
+    border-radius: 3px !important;
+}
+
+.stTextArea textarea:focus, .stTextInput input:focus {
+    border-color: var(--beige-primary) !important;
+    box-shadow: 0 0 0 1px var(--beige-primary) !important;
+}
+
+/* ─── Technical Progress Bar ─── */
+.stProgress > div > div > div > div {
+    background-color: var(--beige-primary) !important;
+}
+
+/* ─── Streamlit Sidebar Overrides ─── */
+section[data-testid="stSidebar"] {
+    background-color: #0b0b0d !important;
+    border-right: 1px solid var(--border-subtle) !important;
+}
+
+/* ─── Disclaimer ─── */
+.nothing-disclaimer {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--beige-dim);
+    letter-spacing: 0.05em;
+    border-top: 1px dashed var(--border-subtle);
+    padding-top: 0.5rem;
+    margin-top: 0.75rem;
+}

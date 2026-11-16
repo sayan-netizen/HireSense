@@ -1,0 +1,23 @@
+# HireSense: Multimodal AI-Powered Mock Interview & Behavioural Analysis Platform
+# Core Dependencies
+
+# Frontend & WebRTC Streaming
+streamlit>=1.30.0
+streamlit-webrtc>=0.47.0
+av>=10.0.0
+
+# Computer Vision & Machine Learning
+opencv-python>=4.8.0
+mediapipe>=0.10.0
+numpy>=1.24.0
+pillow>=9.2.0
+
+# Data & Speech Processing
+pandas>=1.5.0
+SpeechRecognition>=3.10.0
+
+# Reporting & PDF Generation
+fpdf2>=2.7.0
+
+# Optional Modules:
+# openpronounce  # Optional: For pronunciation assessment

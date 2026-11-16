@@ -1,237 +1,223 @@
-# AI Mock Interview System
+# HireSense
+## Multimodal AI-Powered Mock Interview & Behavioural Analysis Platform
 
-An interactive Streamlit application for practicing technical and HR
-interviews. Users can answer questions in writing or by voice and receive
-AI-generated feedback on correctness, depth, completeness, grammar, and
-overall quality.
+HireSense is an integrated virtual interviewer that prepares candidates for technical and HR interviews by evaluating three independent dimensions:
 
-## Features
+1. **Answer Intelligence**: Technical accuracy, reasoning depth, completeness, and grammar structure evaluated using a locally hosted LLM via Ollama.
+2. **Speech Intelligence**: Spoken answer transcription, deterministic filler-word analysis, speech patterns, and optional pronunciation feedback.
+3. **Visual Behaviour Intelligence**: Real-time computer vision analysis tracking posture alignment, solvePnP head orientation, iris gaze direction, hand gestures, and posture stability using MediaPipe Tasks.
 
-- Technical, HR, or mixed interview practice.
-- Subject filtering for DSA, DBMS, operating systems, computer networks,
-  OOP, and general HR questions.
-- Easy, medium, and hard difficulty levels.
-- Written answers through a text area.
-- Oral answers through microphone recording.
-- Speech-to-text conversion using Google Speech Recognition.
-- Local answer evaluation through Ollama and a configurable Qwen model.
-- Separate filler-word analysis for oral answers.
-- Optional audio-based pronunciation analysis with OpenPronounce.
-- Session-state handling so the current question, transcript, audio, and
-  evaluation survive Streamlit reruns.
+> **Ethical & Coaching Disclaimer:** Visual measurements are coaching indicators designed to assist self-directed interview practice. They are **not** psychological diagnoses, emotional state classifiers, lie detectors, or validated tools for automated employment screening.
 
-## Project architecture
+---
+
+## 1. System Architecture
 
 ```text
-AI_Mock_Interview/
-├── README.md
-├── .gitignore
-└── AI_Mock_Interview/
-    ├── app.py
-    └── questions.csv
+                    HIRESENSE
+                        |
+                 Streamlit Frontend
+                        |
+              Interview Session Manager
+                        |
+          +-------------+-------------+
+          |             |             |
+          v             v             v
+     AI INTERVIEW   SPEECH ENGINE   VISION ENGINE
+          |             |             |
+          v             v             v
+     Question       Microphone      Webcam
+     Controller     Capture         Capture
+          |             |             |
+          v             v             v
+     Ollama API     FFmpeg          OpenCV
+          |             |             |
+          v             v             v
+     Qwen Model     Speech-to-Text  MediaPipe Tasks
+          |             |             |
+          v             v             v
+     Answer         Transcript      Pose / Face /
+     Evaluation     Analysis        Hand Analysis
+          |             |             |
+          v             v             v
+     AI Feedback    Speech Scores   Visual Metrics
+          |             |             |
+          +-------------+-------------+
+                        |
+                        v
+              INTERVIEW REPORT ENGINE
+                        |
+                        v
+                RESULTS DASHBOARD
+                        |
+                        v
+              PDF / JSON EXPORT
 ```
 
-### Runtime components
+---
+
+## 2. Project Structure
 
 ```text
-Browser
-  │
-  ▼
-Streamlit UI (app.py)
-  ├── Loads and validates questions.csv
-  ├── Filters questions by interview type, subject, and difficulty
-  ├── Collects written text or microphone audio
-  ├── Converts oral audio to text with SpeechRecognition
-  ├── Sends the answer and question context to Ollama
-  ├── Calculates deterministic filler-word statistics
-  └── Optionally compares audio pronunciation with OpenPronounce
+INNOVATIVE PROJECT 2026/
+│
+├── app.py                      # Main unified Streamlit application entry point
+├── requirements.txt            # System dependencies
+├── README.md                   # System documentation & setup guide
+├── .gitignore                  # Git ignore rules
+├── .env.example                # Sample environment variables
+│
+├── config/                     # Application & model configuration
+│   ├── __init__.py
+│   ├── settings.py             # Global constants, subjects, timeouts
+│   └── model_config.py         # MediaPipe asset paths and thresholds
+│
+├── data/
+│   └── questions.csv           # 30 curated Technical & HR interview questions
+│
+├── core/                       # Orchestration & session coordination
+│   ├── __init__.py
+│   ├── session_manager.py      # Thread-safe session data store
+│   ├── interview_controller.py # Multi-engine interview coordinator
+│   ├── question_manager.py     # Question filter, normalizer, and bank
+│   └── event_manager.py        # System event logger
+│
+├── ai_interviewer/             # Local LLM evaluation engine
+│   ├── __init__.py
+│   ├── ollama_client.py        # Robust Ollama HTTP client with timeout & fallbacks
+│   ├── answer_evaluator.py     # 3-score schema evaluator with offline fallback
+│   ├── evaluation_prompts.py   # System prompts and adaptive follow-up prompts
+│   ├── question_generator.py   # Dynamic follow-up generator
+│   └── response_validator.py   # Strict JSON sanitization & bounds clamping
+│
+├── speech_analysis/            # Speech & verbal delivery engine
+│   ├── __init__.py
+│   ├── audio_capture.py        # Audio bytes & FFmpeg 16 kHz WAV converter
+│   ├── speech_to_text.py       # Google Speech Recognition with correction
+│   ├── filler_analyzer.py      # Deterministic regex filler analysis (10 patterns)
+│   ├── pronunciation_analyzer.py # OpenPronounce integration
+│   └── speech_metrics.py       # Session-wide speech metrics aggregator
+│
+├── posture_analysis/           # MediaPipe computer vision engine
+│   ├── __init__.py
+│   ├── config.py               # Biomechanical thresholds & weight profiles
+│   ├── engine.py               # PostureEngine class for WebRTC & OpenCV
+│   ├── posture_analyzer.py     # Spine lean, shoulder tilt, slouching, stability
+│   ├── face_analyzer.py        # solvePnP head yaw/pitch/roll, iris gaze, blinks
+│   ├── hand_analyzer.py        # Hand visibility, fidgeting variance, face-touching
+│   ├── scoring.py              # Debounced sub-scores, EMA smoothing, session stats
+│   ├── visualization.py        # OpenCV & Pillow dashboard renderer
+│   └── models/                 # Model assets
+│       ├── pose_landmarker.task
+│       ├── face_landmarker.task
+│       ├── hand_landmarker.task
+│       ├── Roboto-Bold.ttf
+│       └── Roboto-Regular.ttf
+│
+├── reporting/                  # Report compilation & export
+│   ├── __init__.py
+│   ├── report_generator.py     # Unified 3-pillar report generator
+│   ├── pdf_exporter.py         # Multi-page PDF generation via fpdf2
+│   └── visualizations.py       # Metric formatting utilities
+│
+├── assets/
+│   ├── logo.png                # HireSense branded logo
+│   └── styles.css              # Dark professional theme & glassmorphism
+│
+└── tests/                      # Automated test suite
+    ├── test_interview.py       # Questions, session lifecycle, LLM validator
+    ├── test_speech.py          # Filler detection & audio metrics
+    ├── test_vision.py          # Posture scoring, debouncing, profile weights
+    └── test_reporting.py       # Multimodal report & PDF generation
 ```
 
-### Request and evaluation flow
+---
 
-1. `questions.csv` is loaded with `pandas` and cached with
-   `st.cache_data`.
-2. Sidebar selections filter the question set.
-3. Streamlit session state tracks the question index, answer, transcript,
-   recorded audio, settings, and evaluation.
-4. For a written answer, the text is sent directly to the evaluator.
-5. For an oral answer:
-   - Streamlit captures the recording.
-   - FFmpeg converts the browser recording to 16 kHz mono WAV.
-   - Google Speech Recognition creates a transcript.
-   - The transcript can be corrected before evaluation.
-6. `evaluate_with_llm()` sends the question, reference answer, key concepts,
-   and user answer to the local Ollama HTTP API.
-7. The model must return JSON containing three scores from 0 to 10,
-   explanations, strengths, improvement areas, and a reference answer.
-8. Oral feedback additionally includes filler-word counts and, when
-   configured, pronunciation results.
+## 3. Visual Scoring Methodology & Discrepancy Resolution
 
-### Data model
+### Documented Weight Profiles
 
-Each row in `questions.csv` represents one question:
+HireSense explicitly documents the discrepancy between the original `config.py` implementation and the visual `README.md`:
 
-| Column | Description |
-|---|---|
-| `id` | Unique question identifier |
-| `category` | `Technical` or `HR` |
-| `subject` | Topic such as `DSA` or `General` |
-| `difficulty` | `Easy`, `Medium`, or `Hard` |
-| `question` | Prompt shown to the user |
-| `reference_answer` | Baseline answer supplied to the evaluator |
-| `key_concepts` | Semicolon-separated concepts expected in a good answer |
+| Metric | Profile A: Code Default (Gesture-Focused) | Profile B: Balanced (Visual README) | Description |
+|---|:---:|:---:|---|
+| **Posture** | **25%** | **25%** | Sitting alignment, torso lean, shoulder tilt relative to calibration |
+| **Gestures** | **25%** | **10%** | Hand composure, fidgeting variance, face-touching |
+| **Eye Contact** | **20%** | **20%** | Rolling gaze consistency directed toward camera lens |
+| **Head Position** | **15%** | **20%** | Head yaw / pitch / roll orientation via solvePnP |
+| **Expression** | **10%** | **15%** | Facial engagement using 52 Face Blendshapes |
+| **Stability** | **5%** | **10%** | Torso landmark movement stillness over rolling window |
+| **Total** | **100%** | **100%** | Both profiles sum to 1.0 (100%) |
 
-## Requirements
+**Default Profile:** Profile A is active by default to preserve the refined gesture emphasis of the latest codebase. Users can switch between profiles via the sidebar or `posture_analysis/config.py`.
 
-- Windows, macOS, or Linux
-- Python 3.10 or newer
-- Ollama
-- A downloaded Ollama model, preferably `qwen3.5:4b`
-- FFmpeg for oral answers and pronunciation analysis
-- A microphone for oral mode
-- Internet access for Google Speech Recognition
+---
 
-Written mode only requires Python packages and Ollama. FFmpeg,
-SpeechRecognition, and OpenPronounce are needed for the corresponding audio
-features.
+## 4. Setup and Installation (Windows)
 
-## Installation
+### Prerequisites
 
-From the repository root:
+1. **Python 3.10 to 3.12** installed on Windows.
+2. **Ollama** installed from [ollama.com](https://ollama.com).
+3. **FFmpeg** installed and added to your Windows `PATH` (for microphone audio conversion).
+4. A standard webcam and microphone.
+
+### Step 1: Install Dependencies
+
+Open PowerShell in the project root:
 
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install streamlit pandas SpeechRecognition
+# Install required Python packages
+python -m pip install -r requirements.txt
 ```
 
-Install Ollama from [ollama.com](https://ollama.com), then download the
-default model:
+### Step 2: Start Ollama and Download Model
+
+Ensure the Ollama application or daemon is running, then pull the recommended Qwen model:
 
 ```powershell
 ollama pull qwen3.5:4b
 ```
 
-Make sure FFmpeg is installed and available on `PATH`. Verify both tools:
+*(Note: HireSense includes an intelligent offline fallback engine. If Ollama is temporarily offline, the application will degrade gracefully and continue evaluating answers using heuristic concept coverage).*
+
+### Step 3: Run Unit Tests
+
+Verify that all engines, validators, and exporters function correctly:
 
 ```powershell
-ollama list
-ffmpeg -version
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-To enable pronunciation analysis, install a compatible OpenPronounce release
-in the same virtual environment:
+All 16 unit tests should pass with `OK`.
+
+---
+
+## 5. Running HireSense
+
+Launch the unified Streamlit application:
 
 ```powershell
-pip install openpronounce
+streamlit run app.py
 ```
 
-If the package has additional platform-specific requirements, follow its
-installation instructions before using the pronunciation button.
+Streamlit will open in your default browser at `http://localhost:8501`.
 
-## Running the application
+---
 
-Start Ollama if it is not already running, activate the virtual environment,
-and launch Streamlit from the repository root:
+## 6. Application Workflow
 
-```powershell
-.\venv\Scripts\Activate.ps1
-streamlit run .\AI_Mock_Interview\app.py
-```
+1. **Screen 1 — Landing Page**: Overview of HireSense capabilities, system diagnostic checks (Ollama, MediaPipe, FFmpeg, WebRTC).
+2. **Screen 2 — Configuration**: Select Candidate Name, Interview Category (Technical, HR, Mixed), Subject (DSA, DBMS, OS, Computer Networks, OOP, General), Difficulty, Number of Questions, Written/Oral mode, and Webcam toggle.
+3. **Screen 3 — Calibration**: 4-second baseline calibration capturing individual shoulder width, posture, and head orientation.
+4. **Screen 4 — Live Interview**: Virtual interviewer questions on the left; live webcam preview with visual cues on the right. Submit written answers or record oral audio.
+5. **Screen 5 — Inline Evaluation**: Real-time content scores (Correctness, Depth, Completeness out of 10), explanations, strengths, areas to improve, filler-word counts, and optional adaptive follow-up questions.
+6. **Screen 6 — Final Report & Export**: Comprehensive 3-pillar performance report combining Answer Intelligence, Speech Intelligence, and Visual Behaviour Intelligence. Download as **PDF** or **JSON**.
 
-Open the URL printed by Streamlit, normally
-`http://localhost:8501`.
+---
 
-The application reads `questions.csv` using a relative path, so launch it
-from the repository root as shown above.
+## 7. Privacy & Security
 
-### Selecting another Ollama model
-
-The default model is `qwen3.5:4b`. The app reads `OLLAMA_MODEL` from the
-environment:
-
-```powershell
-$env:OLLAMA_MODEL = "qwen3.5:4b"
-streamlit run .\AI_Mock_Interview\app.py
-```
-
-The selected model must be available locally:
-
-```powershell
-ollama pull <model-name>
-```
-
-## How to use
-
-1. Start Ollama and Streamlit.
-2. Choose an interview type in the sidebar.
-3. Choose a subject and difficulty.
-4. Select `Written` or `Oral` answer mode.
-5. Read the displayed question and submit an answer.
-6. Select **Evaluate Answer**.
-7. Review the content scores, explanation, strengths, and improvement areas.
-8. In oral mode, review the transcript and correct it if necessary before
-   evaluation.
-9. After evaluation, review filler-word statistics.
-10. Select **Analyze Pronunciation** if OpenPronounce and FFmpeg are
-    configured.
-11. Change the sidebar settings to restart with a new filtered question set.
-
-## Configuration and extension points
-
-- **Question bank:** Add or edit rows in
-  [`AI_Mock_Interview/questions.csv`](./AI_Mock_Interview/questions.csv).
-  Keep all required columns and use the existing category, subject, and
-  difficulty values unless the filtering logic is updated.
-- **Model:** Change `OLLAMA_MODEL` without changing source code.
-- **Evaluator:** Update the prompt and validation in
-  `evaluate_with_llm()` to change scoring criteria or feedback fields.
-- **Speech recognition:** Change the language passed to
-  `recognize_google()` when targeting another locale.
-- **Filler analysis:** Extend the regular-expression map in
-  `analyze_fillers()`.
-- **Pronunciation:** Adapt `analyze_pronunciation()` if the installed
-  OpenPronounce API or supported audio formats differ.
-
-## Troubleshooting
-
-### Ollama connection or evaluation errors
-
-Confirm that Ollama is running and that the configured model is installed:
-
-```powershell
-ollama list
-ollama run qwen3.5:4b
-```
-
-The evaluator uses `http://localhost:11434/api/chat` and allows up to five
-minutes for a response.
-
-### FFmpeg not found
-
-Install FFmpeg, add its `bin` directory to the system `PATH`, restart VS
-Code or the terminal, and verify with `ffmpeg -version`.
-
-### Speech cannot be recognized
-
-Check microphone permissions, record clear English audio, and confirm that
-the machine has internet access. Speech recognition is an external service,
-so recognition can fail or produce an imperfect transcript.
-
-### No questions found
-
-Check that the selected category, subject, and difficulty values match the
-rows in `questions.csv`. The application stops with a warning when a filter
-combination has no matching rows.
-
-## Limitations
-
-- Evaluations depend on the local model's quality and response time.
-- Speech recognition requires an internet connection and may misrecognize
-  words.
-- Filler-word counts are based on the transcript, not the raw audio.
-- Pronunciation scores are automated estimates and should not be treated as
-  definitive accent or fluency judgments.
-- There is no database or user-account system; application state is kept in
-  the current Streamlit session.
+- **Local Inference**: LLM evaluation runs locally via Ollama. No candidate responses are sent to third-party proprietary LLM APIs.
+- **Local Vision**: MediaPipe vision inference executes entirely on your local CPU/GPU inside the Python process. No video feeds are recorded or stored without explicit consent.
+- **Speech Transparency**: Audio transcription uses Google Web Speech API when recording oral responses, requiring an active internet connection. Written mode operates completely offline.
