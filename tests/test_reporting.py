@@ -6,7 +6,7 @@ import os
 import json
 import unittest
 from reporting.report_generator import ReportGenerator
-from reporting.pdf_exporter import export_report_to_pdf
+from reporting.pdf_exporter import export_report_to_pdf, generate_report_pdf_bytes
 
 
 class TestReportingEngine(unittest.TestCase):
@@ -88,7 +88,26 @@ class TestReportingEngine(unittest.TestCase):
 
         self.assertEqual(report["overview"]["session_id"], "test-1234")
         self.assertEqual(report["answer_intelligence"]["overall_content_score"], 8.7)
+        self.assertEqual(report["answer_intelligence"]["average_content_score"], 8.7)
+        self.assertIn("primary_strengths", report["answer_intelligence"])
+        self.assertIn("primary_weaknesses", report["answer_intelligence"])
         self.assertEqual(report["visual_intelligence"]["overall_readiness_score"], 86.0)
+
+    def test_visual_intelligence_disabled_when_webcam_off(self):
+        session_copy = dict(self.sample_session)
+        session_copy["settings"] = dict(self.sample_session["settings"])
+        session_copy["settings"]["webcam_enabled"] = False
+        report = ReportGenerator.generate_report(session_copy)
+        self.assertFalse(report["visual_intelligence"]["is_evaluated"])
+        self.assertEqual(report["visual_intelligence"]["posture_score"], 0.0)
+        self.assertEqual(report["visual_intelligence"]["reliability_score"], 0.0)
+
+    def test_pdf_export_bytes(self):
+        report = ReportGenerator.generate_report(self.sample_session)
+        pdf_bytes = generate_report_pdf_bytes(report)
+        self.assertIsInstance(pdf_bytes, bytes)
+        self.assertTrue(pdf_bytes.startswith(b"%PDF"))
+        self.assertGreater(len(pdf_bytes), 1000)
 
     def test_pdf_export(self):
         report = ReportGenerator.generate_report(self.sample_session)

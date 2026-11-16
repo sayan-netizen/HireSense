@@ -302,7 +302,7 @@ class HandAnalyzer:
             
     def _empty_result(self) -> dict:
         """When hands are resting on the lap or desk below the camera view."""
-        raw_score = 90.0  # Composed resting posture
+        raw_score = 75.0  # Balanced resting baseline score
         if not self._ema_initialized:
             self._ema_gesture_score = raw_score
             self._ema_initialized = True

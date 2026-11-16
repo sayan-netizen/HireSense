@@ -28,21 +28,12 @@ from config.settings import (
 )
 
 # Core Engines & Architecture
-def clean_html(raw_html: str) -> str:
-    """Strips all leading whitespace from each line of an HTML string."""
-    return "\n".join(line.lstrip() for line in raw_html.strip().splitlines())
-
-import importlib
-import sys
-if "core.ui_components" in sys.modules:
-    import core.ui_components
-    importlib.reload(core.ui_components)
-
 from core.session_manager import InterviewSessionManager
 from core.question_manager import QuestionManager
 from core.interview_controller import InterviewController
 from core.telemetry_server import start_telemetry_server
 from core.ui_components import (
+    clean_html,
     render_page_header,
     render_section_title,
     render_status_pill,
@@ -66,7 +57,7 @@ from posture_analysis.config import set_scoring_profile, SCORING_PROFILES, ACTIV
 
 # Reporting & Export
 from reporting.report_generator import ReportGenerator
-from reporting.pdf_exporter import export_report_to_pdf
+from reporting.pdf_exporter import export_report_to_pdf, generate_report_pdf_bytes
 from reporting.visualizations import format_subscores_markdown, get_score_color_hex
 
 # WebRTC Video Streaming
@@ -118,6 +109,17 @@ if "ollama_client" not in st.session_state:
 
 if "camera_mirror" not in st.session_state:
     st.session_state.camera_mirror = False
+
+for _k in ("camera_mirror_sidebar_toggle", "cal_mirror_toggle", "live_mirror_toggle"):
+    if _k not in st.session_state:
+        st.session_state[_k] = st.session_state.camera_mirror
+
+def on_mirror_toggle_change(source_key: str):
+    val = bool(st.session_state.get(source_key, False))
+    st.session_state.camera_mirror = val
+    AppEngineBridge.mirror = val
+    for _k in ("camera_mirror_sidebar_toggle", "cal_mirror_toggle", "live_mirror_toggle"):
+        st.session_state[_k] = val
 
 if "posture_engine" not in st.session_state:
     try:
@@ -283,20 +285,17 @@ with st.sidebar:
 
     # ── CAMERA SETTINGS ──
     st.markdown("<div class='nothing-label'>[ CAMERA SETTINGS ]</div>", unsafe_allow_html=True)
-    m_val = st.toggle(
+    st.toggle(
         "Mirror Camera View",
-        value=bool(st.session_state.get("camera_mirror", False)),
         key="camera_mirror_sidebar_toggle",
+        on_change=on_mirror_toggle_change,
+        args=("camera_mirror_sidebar_toggle",),
         help="ON = Selfie mirror view. OFF = Natural camera view.",
     )
-    if m_val != st.session_state.get("camera_mirror", False):
-        st.session_state.camera_mirror = m_val
-        AppEngineBridge.mirror = m_val
-        st.rerun()
     AppEngineBridge.mirror = bool(st.session_state.get("camera_mirror", False))
 
     ice_opts = ["Local Direct (Instant / No STUN)", "Multi-STUN (Google / Cloudflare)"]
-    ice_idx = 0 if "Local" in st.session_state.get("webrtc_ice_mode", "Local Direct") else 1
+    ice_idx = 0 if "Local" in st.session_state.get("webrtc_ice_mode", "Local Direct (Instant / No STUN)") else 1
     selected_ice = st.selectbox(
         "WebRTC Network",
         ice_opts,
@@ -315,7 +314,9 @@ with st.sidebar:
     if session_active and current_sc == "interview":
         st.markdown("<div class='nothing-label'>[ SESSION CONTROL ]</div>", unsafe_allow_html=True)
         if st.button("TERMINATE SESSION [END]", use_container_width=True, type="secondary"):
-            v_summary = st.session_state.posture_engine.get_summary() if st.session_state.posture_engine else {}
+            sess_data = st.session_state.controller.session_manager.get_session_data()
+            webcam_enabled = sess_data.get("settings", {}).get("webcam_enabled", True)
+            v_summary = st.session_state.posture_engine.get_summary() if (webcam_enabled and st.session_state.posture_engine) else None
             s_summary = st.session_state.controller.speech_aggregator.get_summary()
             st.session_state.controller.session_manager.finish_session(
                 speech_summary=s_summary, visual_summary=v_summary
@@ -649,11 +650,13 @@ elif st.session_state.current_screen == "calibration":
                 unsafe_allow_html=True,
             )
         with c_hdr2:
-            cal_m = st.toggle("Mirror View", value=bool(st.session_state.get("camera_mirror", False)), key="cal_mirror_toggle")
-            if cal_m != st.session_state.get("camera_mirror", False):
-                st.session_state.camera_mirror = cal_m
-                AppEngineBridge.mirror = cal_m
-                st.rerun()
+            st.toggle(
+                "Mirror View",
+                key="cal_mirror_toggle",
+                on_change=on_mirror_toggle_change,
+                args=("cal_mirror_toggle",),
+                help="ON = Selfie mirror view. OFF = Natural camera view.",
+            )
 
         if WEBRTC_AVAILABLE:
             rtc_config = get_rtc_configuration()
@@ -821,7 +824,9 @@ elif st.session_state.current_screen == "interview":
     curr_q = st.session_state.controller.session_manager.get_current_question()
     if not curr_q:
         # Session complete
-        v_summary = st.session_state.posture_engine.get_summary() if st.session_state.posture_engine else {}
+        sess_data = st.session_state.controller.session_manager.get_session_data()
+        webcam_enabled = sess_data.get("settings", {}).get("webcam_enabled", True)
+        v_summary = st.session_state.posture_engine.get_summary() if (webcam_enabled and st.session_state.posture_engine) else None
         s_summary = st.session_state.controller.speech_aggregator.get_summary()
         st.session_state.controller.session_manager.finish_session(
             speech_summary=s_summary, visual_summary=v_summary
@@ -1014,6 +1019,29 @@ elif st.session_state.current_screen == "interview":
             with st.expander("// VIEW EXPECTED REFERENCE ANSWER"):
                 st.write(ev.get("reference_answer") or curr_q.get("reference_answer"))
 
+            # Adaptive Follow-up Prompt (if enabled)
+            sess_answers = st.session_state.controller.session_manager.session_data.get("answers", {})
+            curr_rec = sess_answers.get(q_idx, {})
+            followup_prompt = curr_rec.get("followup_question")
+            if followup_prompt:
+                st.markdown(
+                    clean_html(f"""
+                    <div class="nothing-card" style="border-color: var(--tech-amber); margin-top: 0.75rem;">
+                        <div class="nothing-card-header">
+                            <span style="color: var(--tech-amber);">[ ADAPTIVE FOLLOW-UP PROMPT ]</span>
+                            <span class="nothing-badge nothing-badge-amber">PROBING CONCEPT</span>
+                        </div>
+                        <div style="font-size: 0.90rem; color: var(--beige-light); font-weight: 500; line-height: 1.5; margin-bottom: 0.35rem;">
+                            {followup_prompt}
+                        </div>
+                        <div style="font-size: 0.70rem; color: var(--beige-dim); font-family: var(--font-mono);">
+                            // Refine this conceptual nuance during your post-interview review session.
+                        </div>
+                    </div>
+                    """),
+                    unsafe_allow_html=True,
+                )
+
             # Next Question Navigation Action
             st.markdown("<br>", unsafe_allow_html=True)
             if q_idx + 1 < total_q:
@@ -1026,7 +1054,9 @@ elif st.session_state.current_screen == "interview":
                     st.rerun()
             else:
                 if st.button("COMPLETE INTERVIEW & GENERATE DOSSIER", type="primary", use_container_width=True):
-                    v_summary = st.session_state.posture_engine.get_summary() if st.session_state.posture_engine else {}
+                    sess_data = st.session_state.controller.session_manager.get_session_data()
+                    webcam_enabled = sess_data.get("settings", {}).get("webcam_enabled", True)
+                    v_summary = st.session_state.posture_engine.get_summary() if (webcam_enabled and st.session_state.posture_engine) else None
                     s_summary = st.session_state.controller.speech_aggregator.get_summary()
                     st.session_state.controller.session_manager.finish_session(
                         speech_summary=s_summary, visual_summary=v_summary
@@ -1064,11 +1094,13 @@ elif st.session_state.current_screen == "interview":
                     unsafe_allow_html=True,
                 )
             with iv_hdr2:
-                iv_m = st.toggle("Mirror View", value=bool(st.session_state.get("camera_mirror", False)), key="live_mirror_toggle")
-                if iv_m != st.session_state.get("camera_mirror", False):
-                    st.session_state.camera_mirror = iv_m
-                    AppEngineBridge.mirror = iv_m
-                    st.rerun()
+                st.toggle(
+                    "Mirror View",
+                    key="live_mirror_toggle",
+                    on_change=on_mirror_toggle_change,
+                    args=("live_mirror_toggle",),
+                    help="ON = Selfie mirror view. OFF = Natural camera view.",
+                )
 
             # WebRTC Camera Stream
             if WEBRTC_AVAILABLE:
@@ -1245,17 +1277,31 @@ elif st.session_state.current_screen == "interview":
                         if (!res.ok) return;
                         const d = await res.json();
                         
-                        document.getElementById("val-posture").innerText = d.posture + " / 100";
-                        document.getElementById("val-gaze").innerText = d.eye_contact + " / 100 (" + d.gaze_direction + ")";
-                        document.getElementById("val-head").innerText = d.head_position + " / 100";
-                        document.getElementById("val-gesture").innerText = d.gesture_score + " / 100";
-                        document.getElementById("val-rel").innerText = d.reliability + "%";
+                        if (d.tracking_active) {
+                            document.getElementById("val-posture").innerText = d.posture + " / 100";
+                            document.getElementById("val-gaze").innerText = d.eye_contact + " / 100 (" + d.gaze_direction + ")";
+                            document.getElementById("val-head").innerText = d.head_position + " / 100";
+                            document.getElementById("val-gesture").innerText = d.gesture_score + " / 100";
+                            document.getElementById("val-rel").innerText = d.reliability + "%";
 
-                        document.getElementById("bar-posture").style.width = Math.max(0, Math.min(100, d.posture)) + "%";
-                        document.getElementById("bar-gaze").style.width = Math.max(0, Math.min(100, d.eye_contact)) + "%";
-                        document.getElementById("bar-head").style.width = Math.max(0, Math.min(100, d.head_position)) + "%";
-                        document.getElementById("bar-gesture").style.width = Math.max(0, Math.min(100, d.gesture_score)) + "%";
-                        document.getElementById("bar-rel").style.width = Math.max(0, Math.min(100, d.reliability)) + "%";
+                            document.getElementById("bar-posture").style.width = Math.max(0, Math.min(100, d.posture)) + "%";
+                            document.getElementById("bar-gaze").style.width = Math.max(0, Math.min(100, d.eye_contact)) + "%";
+                            document.getElementById("bar-head").style.width = Math.max(0, Math.min(100, d.head_position)) + "%";
+                            document.getElementById("bar-gesture").style.width = Math.max(0, Math.min(100, d.gesture_score)) + "%";
+                            document.getElementById("bar-rel").style.width = Math.max(0, Math.min(100, d.reliability)) + "%";
+                        } else {
+                            document.getElementById("val-posture").innerText = "-- / 100";
+                            document.getElementById("val-gaze").innerText = "-- / 100 (AWAITING OPTICAL TRACKING)";
+                            document.getElementById("val-head").innerText = "-- / 100";
+                            document.getElementById("val-gesture").innerText = "-- / 100";
+                            document.getElementById("val-rel").innerText = "0%";
+
+                            document.getElementById("bar-posture").style.width = "0%";
+                            document.getElementById("bar-gaze").style.width = "0%";
+                            document.getElementById("bar-head").style.width = "0%";
+                            document.getElementById("bar-gesture").style.width = "0%";
+                            document.getElementById("bar-rel").style.width = "0%";
+                        }
                     } catch(e) {} finally {
                         isFetching = false;
                     }
@@ -1275,10 +1321,12 @@ elif st.session_state.current_screen == "interview":
 
 elif st.session_state.current_screen in ("results", "report"):
     if not st.session_state.final_report:
-        v_summary = st.session_state.posture_engine.get_summary() if st.session_state.posture_engine else {}
+        sess_data = st.session_state.controller.session_manager.get_session_data()
+        webcam_enabled = sess_data.get("settings", {}).get("webcam_enabled", True)
+        v_summary = st.session_state.posture_engine.get_summary() if (webcam_enabled and st.session_state.posture_engine) else None
         s_summary = st.session_state.controller.speech_aggregator.get_summary()
         report = ReportGenerator.generate_report(
-            st.session_state.controller.session_manager.get_session_data(),
+            sess_data,
             speech_summary=s_summary,
             visual_summary=v_summary,
         )
@@ -1355,58 +1403,102 @@ elif st.session_state.current_screen in ("results", "report"):
 
     # Dimension 2: Speech Intelligence
     with col_d2:
-        tot_fillers = speech_intel.get("total_fillers", speech_intel.get("total_fillers_detected", 0))
-        filler_rate = speech_intel.get("filler_rate_per_100", speech_intel.get("filler_words_per_100_words", 0.0))
-        tot_words = speech_intel.get("total_words", speech_intel.get("total_words_spoken", 0))
-        st.markdown(
-            clean_html(f"""
-            <div class="nothing-card" style="height: 100%;">
-                <div class="nothing-card-header">
-                    <span>[ DIMENSION 02 ]</span>
-                    <span class="nothing-badge nothing-badge-green">SPEECH INTEL</span>
+        if speech_intel.get("is_evaluated", False):
+            tot_fillers = speech_intel.get("total_fillers", speech_intel.get("total_fillers_detected", 0))
+            filler_rate = speech_intel.get("filler_rate_per_100", speech_intel.get("filler_words_per_100_words", 0.0))
+            tot_words = speech_intel.get("total_words", speech_intel.get("total_words_spoken", 0))
+            st.markdown(
+                clean_html(f"""
+                <div class="nothing-card" style="height: 100%;">
+                    <div class="nothing-card-header">
+                        <span>[ DIMENSION 02 ]</span>
+                        <span class="nothing-badge nothing-badge-green">SPEECH INTEL</span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="nothing-metric-val">{filler_rate:.1f}</span>
+                        <span class="nothing-metric-unit">fillers/100w</span>
+                        <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ TOTAL WORDS: {tot_words} ]</div>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
+                        TOTAL FILLERS: <b>{tot_fillers}</b><br>
+                        SPEAKING PACE: <b>{speech_intel.get('pacing_indicator', 'NATURAL')}</b><br>
+                        PHONETIC ACCURACY: <b>{speech_intel.get('average_pronunciation_score') or 'N/A'}</b>
+                    </div>
                 </div>
-                <div style="margin-bottom: 0.75rem;">
-                    <span class="nothing-metric-val">{filler_rate:.1f}</span>
-                    <span class="nothing-metric-unit">fillers/100w</span>
-                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ TOTAL WORDS: {tot_words} ]</div>
+                """),
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                clean_html("""
+                <div class="nothing-card" style="height: 100%;">
+                    <div class="nothing-card-header">
+                        <span>[ DIMENSION 02 ]</span>
+                        <span class="nothing-badge">SPEECH INTEL</span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="nothing-metric-val" style="color: var(--beige-dim);">N/A</span>
+                        <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ WRITTEN RESPONSE MODE ]</div>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
+                        ACOUSTIC PIPELINE: <b>NOT ACTIVE</b><br>
+                        VERBAL FILLERS: <b>OMITTED</b><br>
+                        PHONETIC ACCURACY: <b>OMITTED</b>
+                    </div>
                 </div>
-                <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
-                    TOTAL FILLERS: <b>{tot_fillers}</b><br>
-                    SPEAKING PACE: <b>{speech_intel.get('pacing_indicator', 'NATURAL')}</b><br>
-                    PHONETIC ACCURACY: <b>{speech_intel.get('average_pronunciation_score') or 'N/A'}</b>
-                </div>
-            </div>
-            """),
-            unsafe_allow_html=True,
-        )
+                """),
+                unsafe_allow_html=True,
+            )
 
     # Dimension 3: Visual Behaviour Intelligence
     with col_d3:
-        posture_avg = vis_intel.get("posture_score", vis_intel.get("posture_alignment_score", 0.0))
-        eye_avg = vis_intel.get("eye_contact_score", vis_intel.get("eye_contact_percentage", 0.0))
-        head_score = vis_intel.get("head_position_score", 0.0)
-        rel_score = vis_intel.get("reliability_score", vis_intel.get("tracking_reliability_percentage", 100.0))
-        st.markdown(
-            clean_html(f"""
-            <div class="nothing-card" style="height: 100%;">
-                <div class="nothing-card-header">
-                    <span>[ DIMENSION 03 ]</span>
-                    <span class="nothing-badge nothing-badge-green">VISUAL INTEL</span>
+        if vis_intel.get("is_evaluated", False):
+            posture_avg = vis_intel.get("posture_score", vis_intel.get("posture_alignment_score", 0.0))
+            eye_avg = vis_intel.get("eye_contact_score", vis_intel.get("eye_contact_percentage", 0.0))
+            head_score = vis_intel.get("head_position_score", 0.0)
+            rel_score = vis_intel.get("reliability_score", vis_intel.get("tracking_reliability_percentage", 100.0))
+            st.markdown(
+                clean_html(f"""
+                <div class="nothing-card" style="height: 100%;">
+                    <div class="nothing-card-header">
+                        <span>[ DIMENSION 03 ]</span>
+                        <span class="nothing-badge nothing-badge-green">VISUAL INTEL</span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="nothing-metric-val">{posture_avg:.0f}</span>
+                        <span class="nothing-metric-unit">/100</span>
+                        <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ POSTURE ALIGNMENT ]</div>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
+                        EYE CONTACT: <b>{eye_avg:.0f}%</b><br>
+                        HEAD POSITION: <b>{head_score:.0f}/100</b><br>
+                        RELIABILITY: <b>{rel_score:.0f}%</b>
+                    </div>
                 </div>
-                <div style="margin-bottom: 0.75rem;">
-                    <span class="nothing-metric-val">{posture_avg:.0f}</span>
-                    <span class="nothing-metric-unit">/100</span>
-                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ POSTURE ALIGNMENT ]</div>
+                """),
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                clean_html("""
+                <div class="nothing-card" style="height: 100%;">
+                    <div class="nothing-card-header">
+                        <span>[ DIMENSION 03 ]</span>
+                        <span class="nothing-badge">VISUAL INTEL</span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="nothing-metric-val" style="color: var(--beige-dim);">N/A</span>
+                        <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--beige-muted); margin-top: 0.2rem;">[ OPTICAL TRACKING OMITTED ]</div>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
+                        CAMERA ANALYSIS: <b>NOT ACTIVE</b><br>
+                        POSTURE & GAZE: <b>OMITTED</b><br>
+                        HEAD POSITION: <b>OMITTED</b>
+                    </div>
                 </div>
-                <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--beige-muted); line-height: 1.8;">
-                    EYE CONTACT: <b>{eye_avg:.0f}%</b><br>
-                    HEAD POSITION: <b>{head_score:.0f}/100</b><br>
-                    RELIABILITY: <b>{rel_score:.0f}%</b>
-                </div>
-            </div>
-            """),
-            unsafe_allow_html=True,
-        )
+                """),
+                unsafe_allow_html=True,
+            )
 
     # 3. Candidate Strengths & Improvement Areas
     render_section_title("SYNTHESIZED INSIGHTS", "Key Strengths & Growth Directives")
@@ -1467,10 +1559,7 @@ elif st.session_state.current_screen in ("results", "report"):
     # 1. PDF Export
     with col_exp1:
         pdf_filename = f"hiresense_report_{ov['session_id']}.pdf"
-        pdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reporting", pdf_filename)
-        export_report_to_pdf(report, pdf_path)
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
+        pdf_bytes = generate_report_pdf_bytes(report)
 
         st.download_button(
             label="[PDF] EXPORT DOSSIER",
@@ -1497,4 +1586,6 @@ elif st.session_state.current_screen in ("results", "report"):
         if st.button("INITIALIZE NEW SESSION", use_container_width=True):
             st.session_state.controller = InterviewController()
             st.session_state.final_report = None
+            if st.session_state.get("posture_engine"):
+                st.session_state.posture_engine.reset_calibration()
             go_to_screen("welcome")

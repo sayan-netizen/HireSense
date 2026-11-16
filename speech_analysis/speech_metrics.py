@@ -24,6 +24,11 @@ class SpeechMetricsAggregator:
             "filler_analysis": filler_analysis,
             "pronunciation": pronunciation,
         }
+        # Update existing record if question was re-submitted to prevent duplicate aggregation
+        for i, existing in enumerate(self.question_speech_records):
+            if existing.get("question_id") == question_id:
+                self.question_speech_records[i] = record
+                return
         self.question_speech_records.append(record)
 
     def get_summary(self) -> Dict[str, Any]:

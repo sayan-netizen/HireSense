@@ -32,6 +32,19 @@ class TestInterviewEngine(unittest.TestCase):
         os_qs = self.qm.filter_questions(interview_type="Technical", subject="Operating Systems", difficulty="Easy")
         self.assertGreater(len(os_qs), 0, "Normalizing 'Operating Systems' to 'OS' should return questions")
 
+    def test_fallback_preserves_subject(self):
+        # If difficulty does not exist, subject filter must still be strictly preserved
+        qs = self.qm.filter_questions(interview_type="Technical", subject="OS", difficulty="NonExistentDiff")
+        self.assertGreater(len(qs), 0)
+        for q in qs:
+            self.assertEqual(q["subject"].lower(), "os")
+
+    def test_hard_difficulty_questions_exist_across_all_subjects(self):
+        for subj in ["DSA", "DBMS", "OS", "Computer Networks", "OOP", "HR"]:
+            itype = "HR" if subj == "HR" else "Technical"
+            qs = self.qm.filter_questions(interview_type=itype, subject=subj, difficulty="Hard")
+            self.assertGreater(len(qs), 0, f"Subject {subj} should have Hard difficulty questions")
+
     def test_session_lifecycle(self):
         qs = self.qm.filter_questions(num_questions=3)
         self.sm.start_session("Alice", {"category": "Technical"}, qs)

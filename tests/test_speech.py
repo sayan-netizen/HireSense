@@ -49,6 +49,20 @@ class TestSpeechEngine(unittest.TestCase):
         self.assertIn("um", summary["top_filler_words"])
         self.assertIn("basically", summary["top_filler_words"])
 
+    def test_speech_aggregator_re_evaluation_no_duplicate(self):
+        aggregator = SpeechMetricsAggregator()
+        analysis1 = analyze_fillers("Um, this is basically the first response.")
+        analysis1_updated = analyze_fillers("This is a clean updated first response with no fillers.")
+
+        aggregator.add_record(1, "Um, this is basically the first response.", analysis1)
+        self.assertEqual(len(aggregator.question_speech_records), 1)
+        self.assertEqual(aggregator.question_speech_records[0]["filler_analysis"]["total"], 2)
+
+        # Re-submitting for question 1 should replace, not append
+        aggregator.add_record(1, "This is a clean updated first response with no fillers.", analysis1_updated)
+        self.assertEqual(len(aggregator.question_speech_records), 1)
+        self.assertEqual(aggregator.question_speech_records[0]["filler_analysis"]["total"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

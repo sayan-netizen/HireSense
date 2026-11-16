@@ -84,11 +84,23 @@ class ReportGenerator:
         avg_completeness = round(sum(completeness_scores) / len(completeness_scores), 1) if completeness_scores else 0.0
         overall_content_score = round((avg_correctness + avg_depth + avg_completeness) / 3.0, 1) if correctness_scores else 0.0
 
+        # Synthesize aggregated primary strengths and areas for improvement
+        agg_strengths = []
+        agg_weaknesses = []
+        for q in question_details:
+            agg_strengths.extend(q.get("strengths", []))
+            agg_weaknesses.extend(q.get("areas_to_improve", []))
+        primary_strengths = list(dict.fromkeys(agg_strengths))[:5]
+        primary_weaknesses = list(dict.fromkeys(agg_weaknesses))[:5]
+
         answer_intelligence = {
             "overall_content_score": overall_content_score,
+            "average_content_score": overall_content_score,
             "average_correctness": avg_correctness,
             "average_depth": avg_depth,
             "average_completeness": avg_completeness,
+            "primary_strengths": primary_strengths,
+            "primary_weaknesses": primary_weaknesses,
             "questions_evaluated": question_details,
         }
 
@@ -106,29 +118,42 @@ class ReportGenerator:
         }
 
         # ─── SECTION D: VISUAL BEHAVIOUR INTELLIGENCE ───
+        webcam_enabled = session_data.get("settings", {}).get("webcam_enabled", True)
         visual_summary = visual_summary or session_data.get("visual_metrics", {})
-        v_averages = visual_summary.get("averages", {})
-        v_events = visual_summary.get("events", {})
+        v_averages = visual_summary.get("averages", {}) if visual_summary else {}
+        v_events = visual_summary.get("events", {}) if visual_summary else {}
+
+        # Evaluated only when webcam was enabled AND visual frames were actually tracked
+        is_visual_evaluated = bool(
+            webcam_enabled
+            and v_averages
+            and (
+                v_averages.get("reliability", 0.0) > 0.0
+                or v_averages.get("overall", 0.0) > 0.0
+                or v_events.get("good_posture_frames", 0) > 0
+                or v_events.get("poor_posture_frames", 0) > 0
+            )
+        )
 
         visual_intelligence = {
-            "is_evaluated": bool(v_averages),
-            "overall_readiness_score": v_averages.get("overall", 0.0),
-            "posture_score": v_averages.get("posture", 0.0),
-            "gestures_score": v_averages.get("gestures", 0.0),
-            "eye_contact_score": v_averages.get("eye_contact", 0.0),
-            "head_position_score": v_averages.get("head_position", 0.0),
-            "expression_score": v_averages.get("expression", 0.0),
-            "stability_score": v_averages.get("stability", 0.0),
-            "reliability_score": v_averages.get("reliability", 100.0),
+            "is_evaluated": is_visual_evaluated,
+            "overall_readiness_score": v_averages.get("overall", 0.0) if is_visual_evaluated else 0.0,
+            "posture_score": v_averages.get("posture", 0.0) if is_visual_evaluated else 0.0,
+            "gestures_score": v_averages.get("gestures", 0.0) if is_visual_evaluated else 0.0,
+            "eye_contact_score": v_averages.get("eye_contact", 0.0) if is_visual_evaluated else 0.0,
+            "head_position_score": v_averages.get("head_position", 0.0) if is_visual_evaluated else 0.0,
+            "expression_score": v_averages.get("expression", 0.0) if is_visual_evaluated else 0.0,
+            "stability_score": v_averages.get("stability", 0.0) if is_visual_evaluated else 0.0,
+            "reliability_score": v_averages.get("reliability", 100.0) if is_visual_evaluated else 0.0,
             "good_posture_frames": v_events.get("good_posture_frames", 0),
             "poor_posture_frames": v_events.get("poor_posture_frames", 0),
             "posture_warnings": v_events.get("posture_warnings", 0),
             "sustained_gaze_away_events": v_events.get("sustained_gaze_away_events", 0),
             "distraction_events": v_events.get("distraction_events", 0),
             "shoulder_tension_events": v_events.get("shoulder_tension_events", 0),
-            "strengths": visual_summary.get("strengths", []),
-            "improvements": visual_summary.get("improvements", []),
-            "is_calibrated": visual_summary.get("is_calibrated", False),
+            "strengths": visual_summary.get("strengths", []) if is_visual_evaluated else [],
+            "improvements": visual_summary.get("improvements", []) if is_visual_evaluated else [],
+            "is_calibrated": visual_summary.get("is_calibrated", False) if is_visual_evaluated else False,
         }
 
         # ─── SECTION E: ACTIONABLE RECOMMENDATIONS ───

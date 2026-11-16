@@ -85,17 +85,17 @@ class PostureEngine:
         self._last_blendshapes = None
         self._last_hand_lms: list = []
 
-        # Thread-safe cached metrics snapshot
+        # Thread-safe cached metrics snapshot - initialized to realistic 0 / inactive state
         self._latest_metrics: Dict[str, Any] = {
             "scores": {
-                "posture": 85.0,
-                "eye_contact": 85.0,
-                "head_position": 85.0,
-                "expression": 85.0,
-                "stability": 90.0,
-                "gestures": 90.0,
-                "overall": 85.0,
-                "reliability": 100.0,
+                "posture": 0.0,
+                "eye_contact": 0.0,
+                "head_position": 0.0,
+                "expression": 0.0,
+                "stability": 0.0,
+                "gestures": 0.0,
+                "overall": 0.0,
+                "reliability": 0.0,
             },
             "posture": {},
             "face": {},
@@ -104,8 +104,8 @@ class PostureEngine:
             "session_time": 0.0,
             "is_calibrated": False,
             "calibration_progress": 0.0,
-            "reliability_label": "Good",
-            "warnings": [],
+            "reliability_label": "Unknown",
+            "warnings": ["Camera initializing or awaiting optical frame"],
         }
 
     def start(self) -> None:
@@ -229,8 +229,10 @@ class PostureEngine:
                     self.hand_analyzer.calibrate_frame(hand_result.hand_landmarks)
 
                 elapsed = time.time() - self.calibration_start_time
-                progress_pct = min(100.0, max((self.calibration_frames_collected / self.target_calibration_frames), (elapsed / self.calibration_duration)) * 100.0)
-                countdown = max(0, int(self.calibration_duration - elapsed) + 1)
+                frame_ratio = self.calibration_frames_collected / self.target_calibration_frames
+                time_ratio = elapsed / self.calibration_duration
+                # Progress is driven by frame acquisition with temporal pacing
+                progress_pct = min(100.0, max(frame_ratio, min(time_ratio, frame_ratio * 1.5)) * 100.0)
 
                 # Fast OpenCV mesh drawing (zero PIL conversion)
                 annotated = self.visualizer.draw_mesh_only(
@@ -240,13 +242,23 @@ class PostureEngine:
                     hand_lms_list=hand_result.hand_landmarks if hand_result.hand_landmarks else [],
                 )
 
-                if self.calibration_frames_collected >= self.target_calibration_frames or elapsed >= self.calibration_duration:
+                # Require a meaningful sample size (at least 30 frames) before finalizing calibration
+                min_frames = min(30, self.target_calibration_frames // 2)
+                can_finish = (
+                    self.calibration_frames_collected >= self.target_calibration_frames
+                    or (elapsed >= self.calibration_duration and self.calibration_frames_collected >= min_frames)
+                )
+
+                if can_finish:
                     self.posture_analyzer.finish_calibration()
                     self.face_analyzer.finish_calibration()
                     self.hand_analyzer.finish_calibration()
-                    self.is_calibrated = True
-                    progress_pct = 100.0
-                    self.session_start_time = time.time()
+                    self.is_calibrated = bool(
+                        self.face_analyzer.calibrated or self.posture_analyzer.calibrated
+                    )
+                    progress_pct = 100.0 if self.is_calibrated else 95.0
+                    if self.is_calibrated:
+                        self.session_start_time = time.time()
 
                 self._latest_metrics["is_calibrated"] = self.is_calibrated
                 self._latest_metrics["calibration_progress"] = progress_pct

@@ -185,6 +185,23 @@ class PostureAnalyzer:
     def finish_calibration(self) -> None:
         """Compute baseline values and standard deviations from trimmed calibration data."""
         if not self._cal_shoulder_width:
+            # Fallback to neutral upright geometric baselines if shoulders were not framed
+            self._baseline_shoulder_angle = 0.0
+            self._std_shoulder_angle = 2.0
+            self._baseline_lateral_angle = 0.0
+            self._std_lateral_angle = 3.0
+            self._baseline_head_offset = 0.0
+            self._std_head_offset = 0.05
+            self._baseline_shoulder_width = 0.35
+            self._std_shoulder_width = 0.02
+            self._baseline_neck_ratio = 0.40
+            self._std_neck_ratio = 0.03
+            self._baseline_nose_y = 0.35
+            self._std_nose_y = 0.02
+            self._baseline_shoulder_z = 0.0
+            self._std_shoulder_z = 0.02
+            self._baseline_forward_head_z = 0.0
+            self.calibrated = True
             return
 
         self._baseline_shoulder_angle, self._std_shoulder_angle = self._trimmed_stats(self._cal_shoulder)

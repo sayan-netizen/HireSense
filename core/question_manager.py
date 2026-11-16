@@ -99,6 +99,16 @@ class QuestionManager:
                 fallback = fallback[fallback["category"].str.casefold() == "technical"]
             elif interview_type.lower() == "hr":
                 fallback = fallback[fallback["category"].str.casefold() == "hr"]
+
+            # Preserve subject filter during fallback
+            if subject not in ("All Subjects", "All Technical", "All"):
+                normalized_target = SUBJECT_NORMALIZATION.get(subject.lower(), subject.lower())
+                subject_match = fallback[
+                    fallback["subject_normalized"].str.casefold() == normalized_target.casefold()
+                ]
+                if not subject_match.empty:
+                    fallback = subject_match
+
             if not fallback.empty:
                 filtered = fallback
 

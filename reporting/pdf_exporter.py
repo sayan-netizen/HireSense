@@ -58,11 +58,8 @@ class HireSensePDFReport(FPDF):
         self.cell(0, 10, f"HireSense Evaluation Report | Page {self.page_no()}/{{nb}}", align="C")
 
 
-def export_report_to_pdf(report: Dict[str, Any], output_path: str) -> str:
-    """
-    Generates a comprehensive multi-page PDF from the unified report dictionary.
-    Returns the file path of the generated PDF.
-    """
+def _build_report_pdf(report: Dict[str, Any]) -> HireSensePDFReport:
+    """Builds and populates the HireSensePDFReport object."""
     pdf = HireSensePDFReport(orientation="P", unit="mm", format="A4")
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=True, margin=18)
@@ -237,6 +234,10 @@ def export_report_to_pdf(report: Dict[str, Any], output_path: str) -> str:
             imp_text = "; ".join(sanitize_text(i) for i in q["areas_to_improve"])
             pdf.multi_cell(182, 5, f"Improvements: {imp_text}", border="LR")
 
+        if q.get("followup_question"):
+            pdf.set_font("helvetica", "I", 8)
+            pdf.multi_cell(182, 4.5, f"Follow-up Question: {sanitize_text(q['followup_question'])}", border="LR")
+
         ref = sanitize_text(q.get("reference_answer", ""))
         if ref:
             if len(ref) > 180:
@@ -259,6 +260,24 @@ def export_report_to_pdf(report: Dict[str, Any], output_path: str) -> str:
         )
         pdf.multi_cell(182, 4, sanitize_text(disclaimer))
 
+    return pdf
+
+
+def export_report_to_pdf(report: Dict[str, Any], output_path: str) -> str:
+    """
+    Generates a comprehensive multi-page PDF from the unified report dictionary.
+    Returns the file path of the generated PDF.
+    """
+    pdf = _build_report_pdf(report)
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     pdf.output(output_path)
     return output_path
+
+
+def generate_report_pdf_bytes(report: Dict[str, Any]) -> bytes:
+    """
+    Generates PDF report entirely in memory, avoiding synchronous disk writes.
+    Returns raw PDF bytes.
+    """
+    pdf = _build_report_pdf(report)
+    return bytes(pdf.output())
