@@ -181,6 +181,8 @@ class PostureEngine:
             self.is_calibrated = False
             self.calibration_frames_collected = 0
             self.calibration_start_time = None
+            self._latest_metrics["is_calibrated"] = False
+            self._latest_metrics["calibration_progress"] = 0.0
 
     def calibrate_frame(self, frame: np.ndarray, mirror: bool = False) -> Tuple[np.ndarray, float, bool]:
         """
@@ -227,7 +229,7 @@ class PostureEngine:
                     self.hand_analyzer.calibrate_frame(hand_result.hand_landmarks)
 
                 elapsed = time.time() - self.calibration_start_time
-                progress_pct = min(100.0, (self.calibration_frames_collected / self.target_calibration_frames) * 100.0)
+                progress_pct = min(100.0, max((self.calibration_frames_collected / self.target_calibration_frames), (elapsed / self.calibration_duration)) * 100.0)
                 countdown = max(0, int(self.calibration_duration - elapsed) + 1)
 
                 # Fast OpenCV mesh drawing (zero PIL conversion)

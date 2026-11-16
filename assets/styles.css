@@ -185,6 +185,12 @@
 }
 
 /* ─── Streamlit Button Styling (Technical Minimalist) ─── */
+button[kind="primary"], button[kind="secondary"] {
+    white-space: normal !important;
+    text-align: center !important;
+    word-break: break-word !important;
+}
+
 button[kind="primary"] {
     background-color: var(--beige-primary) !important;
     color: #08080a !important;
@@ -192,10 +198,10 @@ button[kind="primary"] {
     font-weight: 700 !important;
     font-size: 0.82rem !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.10em !important;
+    letter-spacing: 0.08em !important;
     border: none !important;
     border-radius: 3px !important;
-    padding: 0.55rem 1.2rem !important;
+    padding: 0.55rem 1rem !important;
     transition: all 0.15s ease !important;
 }
 
@@ -258,3 +264,61 @@ section[data-testid="stSidebar"] {
     padding-top: 0.5rem;
     margin-top: 0.75rem;
 }
+
+/* ─── Selection Cards & Interactive Panels ─── */
+.nothing-selection-card {
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+.nothing-selection-card:hover {
+    border-color: var(--border-beige);
+    background-color: var(--bg-card-hover);
+    transform: translateY(-1px);
+}
+
+/* ─── Expanders & Details (Technical Box) ─── */
+details {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 4px !important;
+    margin-bottom: 0.75rem !important;
+}
+
+summary {
+    font-family: var(--font-mono) !important;
+    font-size: 0.82rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    color: var(--beige-primary) !important;
+    padding: 0.6rem 0.8rem !important;
+}
+
+/* ─── Clean Streamlit Radio & Checkbox Styling ─── */
+div[data-testid="stRadio"] label, div[data-testid="stCheckbox"] label {
+    font-family: var(--font-sans) !important;
+    font-size: 0.85rem !important;
+    color: var(--beige-light) !important;
+}
+
+/* ─── Audio Input Dark Theme ─── */
+div[data-testid="stAudioInput"] {
+    background-color: #0d0d10 !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 4px !important;
+    padding: 0.5rem !important;
+}
+
+/* ─── Responsive Media Queries ─── */
+@media (max-width: 768px) {
+    .nothing-title {
+        font-size: 1.4rem !important;
+    }
+    .nothing-metric-val {
+        font-size: 1.7rem !important;
+    }
+    .nothing-card {
+        padding: 1rem 1rem !important;
+    }
+}
+
