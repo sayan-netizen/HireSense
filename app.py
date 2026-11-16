@@ -28,12 +28,21 @@ from config.settings import (
 )
 
 # Core Engines & Architecture
+def clean_html(raw_html: str) -> str:
+    """Strips all leading whitespace from each line of an HTML string."""
+    return "\n".join(line.lstrip() for line in raw_html.strip().splitlines())
+
+import importlib
+import sys
+if "core.ui_components" in sys.modules:
+    import core.ui_components
+    importlib.reload(core.ui_components)
+
 from core.session_manager import InterviewSessionManager
 from core.question_manager import QuestionManager
 from core.interview_controller import InterviewController
 from core.telemetry_server import start_telemetry_server
 from core.ui_components import (
-    clean_html,
     render_page_header,
     render_section_title,
     render_status_pill,
